@@ -1,0 +1,69 @@
+from easydict import EasyDict
+import os.path as osp
+
+
+OPTIM=EasyDict()
+OPTIM.WARMUP_EPOCH=2
+OPTIM.EPOCH=30
+OPTIM.INIT_LR=1e-3
+OPTIM.END_LR=1e-6
+
+TRAIN=EasyDict()
+TRAIN.HM_WEIGHT=1
+TRAIN.OFF_WEIGHT=1
+TRAIN.WH_WEIGHT=0.1
+TRAIN.DEVICE='cuda'
+TRAIN.LOGS=osp.join(osp.dirname(__file__),'logs','hrnet_ctdet')
+TRAIN.CHECKPOINT=osp.join(osp.dirname(__file__),'weights','hrnet_ctdet')
+
+DATASET=EasyDict()
+DATASET.data_dir='/data/DataSet/person_helmet/coco2017'
+DATASET.keep_res=False
+DATASET.pad=0
+DATASET.input_h=512
+DATASET.input_w=512
+DATASET.not_rand_crop=False
+DATASET.flip=0.5
+DATASET.no_color_aug=False
+DATASET.mse_loss=False
+DATASET.dense_wh=False
+DATASET.cat_spec_wh=False
+DATASET.reg_offset=True
+DATASET.debug=0
+DATASET.BATCHSIZE=10
+
+MODEL=EasyDict()
+MODEL.INIT_WEIGHTS = True
+MODEL.PRETRAINED = osp.join(osp.dirname(__file__),
+                            'weights/pretrained/hrnet_w32-36af842e.pth')
+MODEL.PRETRAINED_LAYERS = ['*']
+MODEL.HEADS={'hm':80,'reg':2 , 'wh':2 }
+
+MODEL.STAGE2=EasyDict()
+MODEL.STAGE2.NUM_MODULES = 1
+MODEL.STAGE2.NUM_BRANCHES = 2
+MODEL.STAGE2.NUM_BLOCKS = [4, 4]
+MODEL.STAGE2.NUM_CHANNELS = [32, 64]
+MODEL.STAGE2.BLOCK = 'BASIC'
+MODEL.STAGE2.FUSE_METHOD = 'SUM'
+
+MODEL.STAGE3 = EasyDict()
+MODEL.STAGE3.NUM_MODULES = 4
+MODEL.STAGE3.NUM_BRANCHES = 3
+MODEL.STAGE3.NUM_BLOCKS = [4, 4, 4]
+MODEL.STAGE3.NUM_CHANNELS = [32, 64, 128]
+MODEL.STAGE3.BLOCK = 'BASIC'
+MODEL.STAGE3.FUSE_METHOD = 'SUM'
+
+MODEL.STAGE4 = EasyDict()
+MODEL.STAGE4.NUM_MODULES = 3
+MODEL.STAGE4.NUM_BRANCHES = 4
+MODEL.STAGE4.NUM_BLOCKS = [4, 4, 4, 4]
+MODEL.STAGE4.NUM_CHANNELS = [32, 64, 128, 256]
+MODEL.STAGE4.BLOCK = 'BASIC'
+MODEL.STAGE4.FUSE_METHOD = 'SUM'
+
+
+
+
+
