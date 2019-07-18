@@ -150,8 +150,7 @@ class Yolodet(nn.Module):
 
     def forward(self, x):
         x = self.backbone(x)
-        if self.feat_fuse is not None:
-            x=self.feat_fuse(x)
+        x=self.feat_fuse(x)
         ret = {}
         for head in self.heads:
             id = int(head.split('-')[-1])
