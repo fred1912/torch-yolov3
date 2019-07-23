@@ -20,7 +20,7 @@ class yoloDecode(nn.Module):
         y = torch.arange(self.H)[:, np.newaxis].expand([self.W, self.H])
         xy_grid = torch.cat([x[:, :, np.newaxis], y[:, :, np.newaxis]], dim=-1)[np.newaxis, :, :, np.newaxis, :]
         self.xy_grid=xy_grid.float()
-        self.wh_activation = exp() if not self.use_giou else pow()
+        self.wh_activation = exp() if not self.use_giou else pow()  ##当GIOU为边框损失时，使用exp作为wh的激活会梯度爆炸，因此使用pow作为激活
 
 
     def _apply(self, fn):
