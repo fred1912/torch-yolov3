@@ -5,7 +5,7 @@ import time
 from collections import OrderedDict
 import torch.nn.functional as F
 import numpy as np
-from utils import _sigmoid
+from utils.torch_utils import _sigmoid,exp,pow
 
 class yoloDecode(nn.Module):
     def __init__(self,id,config):
@@ -13,12 +13,15 @@ class yoloDecode(nn.Module):
         self.scale = config.DATASET.DOWN_RATION[id]
         self.H=config.DATASET.INPUT_H //self.scale
         self.W=config.DATASET.INPUT_W // self.scale
+        self.use_giou = config.DATASET.USE_GIOU
         anchors = np.array(config.DATASET.ANCHORS[id])*(np.array([config.DATASET.INPUT_W,config.DATASET.INPUT_H])[np.newaxis,:])
         self.anchors=torch.from_numpy(anchors).float()
         x = torch.arange(self.W)[np.newaxis, :].expand([self.W, self.H])
         y = torch.arange(self.H)[:, np.newaxis].expand([self.W, self.H])
         xy_grid = torch.cat([x[:, :, np.newaxis], y[:, :, np.newaxis]], dim=-1)[np.newaxis, :, :, np.newaxis, :]
         self.xy_grid=xy_grid.float()
+        self.wh_activation = exp() if not self.use_giou else pow()
+
 
     def _apply(self, fn):
         self.xy_grid = fn(self.xy_grid)
@@ -34,8 +37,8 @@ class yoloDecode(nn.Module):
         pred_conv_dwdh = pred[:, :, :, :, 2:4]
         pred_conv_conf = pred[:, :, :, :, 4:5]
         pred_conv_prob = pred[:, :, :, :, 5:]
-        pred_xy = (torch.sigmoid(pred_conv_dxdy)+ self.xy_grid) * self.scale
-        pred_wh = (torch.exp(pred_conv_dwdh) * self.anchors)
+        pred_xy = (_sigmoid(pred_conv_dxdy)+ self.xy_grid) * self.scale
+        pred_wh = (self.wh_activation(pred_conv_dwdh) * self.anchors)
         pred_xywh = torch.cat([pred_xy, pred_wh], dim=-1)
         pred_conf = _sigmoid(pred_conv_conf)
         pred_prob = _sigmoid(pred_conv_prob)
@@ -111,8 +114,8 @@ class Hrnet_fuse(nn.Module):
 class Yolodet(nn.Module):
     def __init__(self,config,pretrained=True):
         super(Yolodet,self).__init__()
-        self.config= config
         cfg=config.HEAD
+        self.config = config
         self.heads=cfg.OUT_HEADS
         channels = cfg.IN_CHANNEL
 
@@ -150,7 +153,8 @@ class Yolodet(nn.Module):
 
     def forward(self, x):
         x = self.backbone(x)
-        x=self.feat_fuse(x)
+        if self.feat_fuse is not None:
+            x=self.feat_fuse(x)
         ret = {}
         for head in self.heads:
             id = int(head.split('-')[-1])
@@ -158,9 +162,9 @@ class Yolodet(nn.Module):
             ret[head + '-decode']=self.__getattr__(head + '-decode')(ret[head])
         return ret
 
-    def convert_pred(self,pred_bbox, org_shape,scores_thresh=0.1):
+    def convert_pred(self, pred_bbox, org_shape, scores_thresh=0.1):
         result = []
-        classes=self.heads['yolo-0']//3
+        classes = self.heads['yolo-0'] // 3
         for k in pred_bbox:
             if 'decode' in k:
                 result.append(pred_bbox[k].view(-1, classes))
@@ -174,10 +178,10 @@ class Yolodet(nn.Module):
         dim_diff = np.abs(h - w)
         pad1, pad2 = dim_diff // 2, dim_diff - dim_diff // 2
         pad = ((pad1, pad2), (0, 0), (0, 0)) if h <= w else ((0, 0), (pad1, pad2), (0, 0))
-        ration_h = max((h,w))/self.config.DATASET.INPUT_H
-        ration_w = max((h, w))/self.config.DATASET.INPUT_H
-        pred_coor = pred_coor * np.array([[ration_w,ration_h,ration_w,ration_h]])
-        pred_coor = pred_coor - np.array([[pad[1][0],pad[0][0],pad[1][0],pad[0][0]]])
+        ration_h = max((h, w)) / self.config.DATASET.INPUT_H
+        ration_w = max((h, w)) / self.config.DATASET.INPUT_H
+        pred_coor = pred_coor * np.array([[ration_w, ration_h, ration_w, ration_h]])
+        pred_coor = pred_coor - np.array([[pad[1][0], pad[0][0], pad[1][0], pad[0][0]]])
         invalid_mask = np.logical_or((pred_coor[:, 0] > pred_coor[:, 2]), (pred_coor[:, 1] > pred_coor[:, 3]))
         pred_coor[invalid_mask] = 0
         classes = np.argmax(pred_prob, axis=-1)
@@ -187,8 +191,8 @@ class Yolodet(nn.Module):
         scores = scores[mask]
         classes = classes[mask]
         bboxes = np.concatenate([coors, scores[:, np.newaxis], classes[:, np.newaxis]], axis=-1)
-
         return bboxes
+
 
 if __name__ == '__main__':
     from config import dark53_yolo,hrnet_yolo

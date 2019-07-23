@@ -53,6 +53,7 @@ def nms(bboxes, score_threshold, iou_threshold, sigma=0.3, method='soft-nms'):
             cls_bboxes = cls_bboxes[score_mask]
     return best_bboxes
 
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
     def __init__(self):

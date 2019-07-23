@@ -1,5 +1,5 @@
 import os
-os.environ.setdefault('CUDA_VISIBLE_DEVICES','0')
+os.environ.setdefault('CUDA_VISIBLE_DEVICES','2')
 
 from dataset import yoloCOCO,yoloPascal
 from models import Yolodet

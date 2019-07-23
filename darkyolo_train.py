@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import os
 os.environ.setdefault('CUDA_VISIBLE_DEVICES','0')
 
@@ -7,7 +11,7 @@ from config import dark53_yolo
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from utils.trainer import YolodetTrainer
-
+from utils.checkpoint import load_checkpoint
 cfg=dark53_yolo
 
 if cfg.DATASET.NAME == 'coco':
@@ -17,7 +21,8 @@ elif cfg.DATASET.NAME == 'pascal':
 else:
     raise Exception("not support")
 
-model = Yolodet(dark53_yolo)
+model = Yolodet(dark53_yolo,pretrained=True)
+#load_checkpoint(model,'weights/dark_yolo/old.pth')
 train_loader = DataLoader(dataset(cfg, 'train'), batch_size=cfg.DATASET.BATCHSIZE, shuffle=True, num_workers=4)
 val_loader = DataLoader(dataset(cfg, 'val'), batch_size=cfg.DATASET.BATCHSIZE, shuffle=True, num_workers=4)
 opti = Adam(model.parameters(), lr=cfg.OPTIM.INIT_LR,weight_decay=cfg.OPTIM.WEIGHT_DECAY)

@@ -64,7 +64,7 @@ class BaseTrainer(object):
             if torch.isinf(loss) or torch.isnan(loss):
                 raise Exception("nan/inf in sum loss")
             self.optimizer.zero_grad()
-            lr = self.lr_just.step(1e-4)
+            lr = self.lr_just.step(1e-3)
             loss.backward()
             self.optimizer.step()
             self.writer.add_scalar('train/lr',lr,self.lr_just.global_step)
@@ -97,8 +97,8 @@ class BaseTrainer(object):
             for l in avg_loss_stats:
                 avg_loss_stats[l].update(
                     loss_stats[l].mean().item(), batch['input'].size(0))
-                self.writer.add_scalar('val/'+l, avg_loss_stats[l].val,epoch*self.num_val_iter+iter_id)
-                show_str+=' {}:{:0.4}   '.format(l, avg_loss_stats[l].val)
+                self.writer.add_scalar('val/'+l, avg_loss_stats[l].avg,epoch*self.num_val_iter+iter_id)
+                show_str+=' {}:{:0.4}   '.format(l, avg_loss_stats[l].avg)
             print(show_str)
         save_checkpoint(model_with_loss.model,self.config.TRAIN['CHECKPOINT']+'/model_%d.pth'%epoch)
 

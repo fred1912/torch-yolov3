@@ -73,7 +73,6 @@ class yoloLoss_GIOU(nn.Module):
         self.alpha =1
         self.gamma =2
         self.bce_loss = nn.BCELoss(reduction='sum')
-
     def forward(self, output, batch):
         loss,GIOU_loss, prob_loss, conf_loss = 0., 0., 0., 0.
         for i in range(len(output)//2):
@@ -85,7 +84,7 @@ class yoloLoss_GIOU(nn.Module):
             GIOU_loss=GIOU_loss+GIOU_loss_
             prob_loss=prob_loss+prob_loss_
             conf_loss=conf_loss+conf_loss_
-        loss=GIOU_loss + prob_loss + conf_loss
+        loss=5* GIOU_loss + prob_loss + conf_loss
         loss_state={'loss':loss,'xywh_loss':GIOU_loss,'conf_loss':conf_loss,'prob_loss':prob_loss}
         return loss,loss_state
 
@@ -118,12 +117,12 @@ class yoloLoss_GIOU(nn.Module):
         return loss
 
 if __name__ == '__main__':
-    from dataset.yolo_coco import yoloCOCO
+    from dataset import yoloCOCO,yoloPascal
     from torch.utils.data import DataLoader
     from models.yolo_head import Yolodet
     from config import hrnet_yolo,dark53_yolo
     from utils.checkpoint import load_checkpoint
-    loader= DataLoader(yoloCOCO(dark53_yolo,'val'),batch_size=4,shuffle=False)
+    loader=DataLoader(yoloCOCO(dark53_yolo,'val'),batch_size=4,shuffle=False)
     model = Yolodet(dark53_yolo,pretrained=True)
     load_checkpoint(model,'../weights/pretrained/this_imple_yolov3.pth')
     crit=yoloLoss()
